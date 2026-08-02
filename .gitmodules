@@ -1,0 +1,6 @@
+[submodule "atlas_hardware/atlas_hawkbot"]
+	path = atlas_hardware/atlas_hawkbot
+	url = git@github.com:kimsniper/atlas_hawkbot.git
+[submodule "atlas_hardware/ydlidar_ros2"]
+	path = atlas_hardware/ydlidar_ros2
+	url = https://github.com/kimsniper/ydlidar_ros2.git
