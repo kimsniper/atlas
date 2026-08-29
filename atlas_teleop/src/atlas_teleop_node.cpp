@@ -13,12 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #include <algorithm>
 #include <chrono>
-#include <csignal>
-#include <iostream>
 #include <memory>
-#include <string>
 
 #include <geometry_msgs/msg/twist.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -32,11 +30,13 @@ using namespace std::chrono_literals;
 class AtlasTeleop : public rclcpp::Node
 {
 public:
-    AtlasTeleop() : Node("atlas_teleop"), linear_speed_(0.15), angular_speed_(1.0)
+    AtlasTeleop()
+        : Node("atlas_teleop"), linear_speed_(0.15), angular_speed_(1.0), terminal_restored_(false)
     {
         cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
 
         original_terminal_settings_ = get_terminal_settings();
+        original_terminal_flags_ = fcntl(STDIN_FILENO, F_GETFL, 0);
 
         set_terminal_raw();
 
@@ -58,16 +58,27 @@ public:
         timer_ = this->create_wall_timer(50ms, std::bind(&AtlasTeleop::update, this));
     }
 
-    ~AtlasTeleop()
+    ~AtlasTeleop() { shutdown(); }
+
+    void shutdown()
     {
+        if (terminal_restored_)
+        {
+            return;
+        }
+
         publish_stop();
         restore_terminal();
+
+        terminal_restored_ = true;
     }
 
 private:
     struct termios get_terminal_settings()
     {
-        struct termios settings;
+        struct termios settings
+        {
+        };
         tcgetattr(STDIN_FILENO, &settings);
         return settings;
     }
@@ -82,11 +93,17 @@ private:
 
         tcsetattr(STDIN_FILENO, TCSANOW, &raw);
 
-        int flags = fcntl(STDIN_FILENO, F_GETFL, 0);
-        fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK);
+        fcntl(STDIN_FILENO, F_SETFL, original_terminal_flags_ | O_NONBLOCK);
     }
 
-    void restore_terminal() { tcsetattr(STDIN_FILENO, TCSANOW, &original_terminal_settings_); }
+    void restore_terminal()
+    {
+        tcsetattr(STDIN_FILENO, TCSANOW, &original_terminal_settings_);
+
+        fcntl(STDIN_FILENO, F_SETFL, original_terminal_flags_);
+
+        tcflush(STDIN_FILENO, TCIFLUSH);
+    }
 
     char read_key()
     {
@@ -189,9 +206,11 @@ private:
     rclcpp::TimerBase::SharedPtr timer_;
 
     struct termios original_terminal_settings_;
+    int original_terminal_flags_;
 
     double linear_speed_;
     double angular_speed_;
+    bool terminal_restored_;
 };
 
 int main(int argc, char *argv[])
@@ -200,9 +219,11 @@ int main(int argc, char *argv[])
 
     auto node = std::make_shared<AtlasTeleop>();
 
-    rclcpp::on_shutdown([node]() { RCLCPP_INFO(node->get_logger(), "Stopping ATLAS..."); });
-
     rclcpp::spin(node);
+
+    node->shutdown();
+
+    node.reset();
 
     rclcpp::shutdown();
 
