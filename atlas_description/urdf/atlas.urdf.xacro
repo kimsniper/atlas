@@ -92,6 +92,7 @@
             <material name="silver"/>
         </visual>
     </link>
+
     <joint name="standoff_1_joint" type="fixed">
         <parent link="base_link"/>
         <child link="standoff_1"/>
@@ -106,6 +107,7 @@
             <material name="silver"/>
         </visual>
     </link>
+
     <joint name="standoff_2_joint" type="fixed">
         <parent link="base_link"/>
         <child link="standoff_2"/>
@@ -120,6 +122,7 @@
             <material name="silver"/>
         </visual>
     </link>
+
     <joint name="standoff_3_joint" type="fixed">
         <parent link="base_link"/>
         <child link="standoff_3"/>
@@ -134,6 +137,7 @@
             <material name="silver"/>
         </visual>
     </link>
+
     <joint name="standoff_4_joint" type="fixed">
         <parent link="base_link"/>
         <child link="standoff_4"/>
@@ -170,7 +174,7 @@
         <child link="wheel_right_link" />
         <axis xyz="0 1 0" />
     </joint>
-    
+
     <!-- Left Wheel -->
     <link name="wheel_left_link">
         <inertial>
@@ -232,7 +236,7 @@
         <child link="caster_front_link" />
         <axis xyz="0 0 0" />
     </joint>
-    
+
     <!-- Rear Caster -->
     <link name="caster_rear_link">
         <inertial>
@@ -287,12 +291,38 @@
             </geometry>
         </collision>
     </link>
-    
+
     <joint name="imu_joint" type="fixed">
         <origin xyz="0 0 0.0698986241758014" rpy="0 0 0" />
         <parent link="base_link" />
         <child link="imu_link" />
         <axis xyz="0 0 0" />
+    </joint>
+
+    <!-- IMU -->
+    <link name="gyro_link"/>
+
+    <joint name="gyro_joint" type="fixed">
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <parent link="imu_link"/>
+        <child link="gyro_link"/>
+    </joint>
+
+    <!-- Camera -->
+    <link name="camera_link">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <box size="0.03 0.03 0.03"/>
+            </geometry>
+            <material name="black"/>
+        </visual>
+    </link>
+
+    <joint name="camera_joint" type="fixed">
+        <origin xyz="0.06 0 0.06" rpy="0 0 0"/>
+        <parent link="base_footprint"/>
+        <child link="camera_link"/>
     </joint>
 
     <!-- LiDAR Laser Link -->
