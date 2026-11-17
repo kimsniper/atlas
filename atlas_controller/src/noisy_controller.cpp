@@ -1,18 +1,12 @@
 #include "atlas_controller/noisy_controller.hpp"
-#include <tf2/LinearMath/Quaternion.h>
 #include <random>
-
+#include <tf2/LinearMath/Quaternion.h>
 
 using std::placeholders::_1;
 
-
-NoisyController::NoisyController(const std::string& name)
-                                  : Node(name)
-                                  , left_wheel_prev_pos_(0.0)
-                                  , right_wheel_prev_pos_(0.0)
-                                  , x_(0.0)
-                                  , y_(0.0)
-                                  , theta_(0.0)
+NoisyController::NoisyController(const std::string &name)
+    : Node(name), left_wheel_prev_pos_(0.0), right_wheel_prev_pos_(0.0), x_(0.0), y_(0.0),
+      theta_(0.0)
 {
     declare_parameter("wheel_radius", 0.033);
     declare_parameter("wheel_separation", 0.17);
@@ -21,12 +15,13 @@ NoisyController::NoisyController(const std::string& name)
     RCLCPP_INFO_STREAM(get_logger(), "Using wheel radius " << wheel_radius_);
     RCLCPP_INFO_STREAM(get_logger(), "Using wheel separation " << wheel_separation_);
 
-    joint_sub_ = create_subscription<sensor_msgs::msg::JointState>("/joint_states", 10, std::bind(&NoisyController::jointCallback, this, _1));
+    joint_sub_ = create_subscription<sensor_msgs::msg::JointState>(
+        "/joint_states", 10, std::bind(&NoisyController::jointCallback, this, _1));
     odom_pub_ = create_publisher<nav_msgs::msg::Odometry>("/atlas_controller/odom_noisy", 10);
 
     // Fill the Odometry message with invariant parameters
     odom_msg_.header.frame_id = "odom";
-    odom_msg_.child_frame_id = "base_footprint_ekf";
+    odom_msg_.child_frame_id = "base_footprint";
     odom_msg_.pose.pose.orientation.x = 0.0;
     odom_msg_.pose.pose.orientation.y = 0.0;
     odom_msg_.pose.pose.orientation.z = 0.0;
@@ -38,7 +33,6 @@ NoisyController::NoisyController(const std::string& name)
 
     prev_time_ = get_clock()->now();
 }
-
 
 void NoisyController::jointCallback(const sensor_msgs::msg::JointState &state)
 {
@@ -106,12 +100,11 @@ void NoisyController::jointCallback(const sensor_msgs::msg::JointState &state)
     transform_broadcaster_->sendTransform(transform_stamped_);
 }
 
-
-int main(int argc, char* argv[])
+int main(int argc, char *argv[])
 {
-  rclcpp::init(argc, argv);
-  auto node = std::make_shared<NoisyController>("noisy_controller");
-  rclcpp::spin(node);
-  rclcpp::shutdown();
-  return 0;
+    rclcpp::init(argc, argv);
+    auto node = std::make_shared<NoisyController>("noisy_controller");
+    rclcpp::spin(node);
+    rclcpp::shutdown();
+    return 0;
 }

@@ -75,6 +75,9 @@ def generate_launch_description():
                 "global_localization.launch.py"
             )
         ),
+        launch_arguments={
+            "use_sim_time": "false"
+        }.items(),
         condition=UnlessCondition(use_slam)
     )
 
@@ -86,6 +89,9 @@ def generate_launch_description():
                 "slam.launch.py"
             )
         ),
+        launch_arguments={
+            "use_sim_time": "false"
+        }.items(),
         condition=IfCondition(use_slam)
     )
 
@@ -96,7 +102,11 @@ def generate_launch_description():
                 "launch",
                 "navigation.launch.py"
             )
-        )
+        ),
+        launch_arguments={
+            "use_sim_time": "false",
+            "cmd_vel_topic": "/atlas_controller/cmd_vel"
+        }.items()
     )
 
     return LaunchDescription([

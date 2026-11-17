@@ -139,7 +139,8 @@ void MappingWithKnownPoses::scanCallback(const sensor_msgs::msg::LaserScan &scan
     }
     catch (const tf2::TransformException &ex)
     {
-        RCLCPP_ERROR(get_logger(), "Unable to transform between /odom and /base_footprint_ekf");
+        RCLCPP_ERROR(get_logger(), "Unable to transform between %s and %s",
+                     map_.header.frame_id.c_str(), scan.header.frame_id.c_str());
         return;
     }
 
