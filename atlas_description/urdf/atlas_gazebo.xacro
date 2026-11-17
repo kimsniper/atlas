@@ -34,7 +34,7 @@
 
     <!-- ROS 2 Control -->
     <gazebo>
-        <plugin filename="ign_ros2_control-system" name="ign_ros2_control::IgnitionROS2ControlPlugin">
+        <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
             <parameters>$(find atlas_controller)/config/atlas_controllers.yaml</parameters>
         </plugin>
         <plugin filename="ignition-gazebo-imu-system" name="ignition::gazebo::systems::Imu">

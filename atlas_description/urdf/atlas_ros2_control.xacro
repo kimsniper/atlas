@@ -6,7 +6,7 @@
         <!-- ros2_control Gazebo -->
         <xacro:if value="$(arg is_sim)">
             <hardware>
-                <plugin>ign_ros2_control/IgnitionSystem</plugin>
+                <plugin>gz_ros2_control/GazeboSimSystem</plugin>
             </hardware>
         </xacro:if>
 
