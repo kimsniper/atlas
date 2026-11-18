@@ -8,7 +8,7 @@ class OdomRepublisher : public rclcpp::Node
 public:
     OdomRepublisher() : Node("odom_republisher")
     {
-        publisher_ = create_publisher<nav_msgs::msg::Odometry>("/odom_corrected", 10);
+        publisher_ = create_publisher<nav_msgs::msg::Odometry>("/atlas_controller/odom", 10);
 
         subscription_ = create_subscription<nav_msgs::msg::Odometry>(
             "/odom", 10, std::bind(&OdomRepublisher::odom_callback, this, std::placeholders::_1));

@@ -67,6 +67,16 @@ def generate_launch_description():
         }]
     )
 
+    local_localization = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(
+                get_package_share_directory("atlas_localization"),
+                "launch",
+                "local_localization.launch.py"
+            )
+        )
+    )
+
     localization = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(
@@ -116,6 +126,7 @@ def generate_launch_description():
         robot_param_launch_arg,
         hardware_interface,
         robot_state_publisher_node,
+        local_localization,
         localization,
         slam,
         navigation,
