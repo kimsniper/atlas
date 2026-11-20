@@ -31,15 +31,12 @@ def generate_launch_description():
         ),
     )
     
-    joystick = IncludeLaunchDescription(
-        os.path.join(
-            get_package_share_directory("atlas_controller"),
-            "launch",
-            "joystick_teleop.launch.py"
-        ),
-        launch_arguments={
-            "use_sim_time": "True"
-        }.items()
+    twist_relay = Node(
+        package="atlas_controller",
+        executable="twist_relay",
+        name="twist_relay",
+        output="screen",
+        parameters=[{"use_sim_time": True}],
     )
 
     localization = IncludeLaunchDescription(
@@ -85,7 +82,7 @@ def generate_launch_description():
         use_slam_arg,
         gazebo,
         controller,
-        joystick,
+        twist_relay,
         localization,
         slam,
         navigation,

@@ -1,50 +1,56 @@
-#include "geometry_msgs/msg/twist.hpp"
-#include "geometry_msgs/msg/twist_stamped.hpp"
-#include "rclcpp/rclcpp.hpp"
+/*
+ * Copyright 2026 Mezael Docoy
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-class TwistRelayNode : public rclcpp::Node
+#include <memory>
+
+#include <geometry_msgs/msg/twist.hpp>
+#include <geometry_msgs/msg/twist_stamped.hpp>
+#include <rclcpp/rclcpp.hpp>
+
+class TwistRelay : public rclcpp::Node
 {
 public:
-    TwistRelayNode() : Node("twist_relay")
-    {
-        controller_sub_ = this->create_subscription<geometry_msgs::msg::Twist>(
-            "/atlas_controller/cmd_vel_unstamped", 10,
-            std::bind(&TwistRelayNode::controller_twist_callback, this, std::placeholders::_1));
-        controller_pub_ = this->create_publisher<geometry_msgs::msg::TwistStamped>(
-            "/atlas_controller/cmd_vel", 10);
-        joy_sub_ = this->create_subscription<geometry_msgs::msg::TwistStamped>(
-            "/input_joy/cmd_vel_stamped", 10,
-            std::bind(&TwistRelayNode::joy_twist_callback, this, std::placeholders::_1));
-        joy_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("/input_joy/cmd_vel", 10);
-    }
+  TwistRelay()
+  : Node("twist_relay")
+  {
+    command_pub_ = create_publisher<geometry_msgs::msg::TwistStamped>(
+      "/atlas_controller/cmd_vel",
+      10);
+
+    command_sub_ = create_subscription<geometry_msgs::msg::Twist>(
+      "/cmd_vel",
+      10,
+      [this](const geometry_msgs::msg::Twist::SharedPtr message)
+      {
+        geometry_msgs::msg::TwistStamped stamped;
+        stamped.header.stamp = get_clock()->now();
+        stamped.twist = *message;
+        command_pub_->publish(stamped);
+      });
+  }
 
 private:
-    void controller_twist_callback(const geometry_msgs::msg::Twist::SharedPtr msg)
-    {
-        geometry_msgs::msg::TwistStamped twist_stamped;
-        twist_stamped.header.stamp = get_clock()->now();
-        twist_stamped.twist = *msg;
-        controller_pub_->publish(twist_stamped);
-    }
-
-    void joy_twist_callback(const geometry_msgs::msg::TwistStamped::SharedPtr msg)
-    {
-        geometry_msgs::msg::Twist twist;
-        twist = msg->twist;
-        joy_pub_->publish(twist);
-    }
-
-    rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr controller_sub_;
-    rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr controller_pub_;
-    rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr joy_sub_;
-    rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr joy_pub_;
+  rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr command_sub_;
+  rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr command_pub_;
 };
 
-int main(int argc, char *argv[])
+int main(int argc, char * argv[])
 {
-    rclcpp::init(argc, argv);
-    auto node = std::make_shared<TwistRelayNode>();
-    rclcpp::spin(node);
-    rclcpp::shutdown();
-    return 0;
+  rclcpp::init(argc, argv);
+  rclcpp::spin(std::make_shared<TwistRelay>());
+  rclcpp::shutdown();
+  return 0;
 }
