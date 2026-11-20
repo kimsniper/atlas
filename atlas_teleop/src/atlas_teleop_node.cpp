@@ -15,17 +15,32 @@
  */
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
+#include <csignal>
 #include <memory>
 
 #include <geometry_msgs/msg/twist.hpp>
 #include <rclcpp/rclcpp.hpp>
 
 #include <fcntl.h>
+#include <poll.h>
 #include <termios.h>
 #include <unistd.h>
 
 using namespace std::chrono_literals;
+
+namespace
+{
+
+std::atomic_bool shutdown_requested{false};
+
+void signal_handler(int)
+{
+  shutdown_requested.store(true);
+}
+
+}  // namespace
 
 class AtlasTeleop : public rclcpp::Node
 {
@@ -55,7 +70,6 @@ public:
     RCLCPP_INFO(this->get_logger(), "t/g : increase/decrease angular speed");
     RCLCPP_INFO(this->get_logger(), "CTRL-C : exit");
 
-    timer_ = this->create_wall_timer(50ms, std::bind(&AtlasTeleop::update, this));
   }
 
   ~AtlasTeleop() {shutdown();}
@@ -70,6 +84,17 @@ public:
     restore_terminal();
 
     terminal_restored_ = true;
+  }
+
+  void run()
+  {
+    while (rclcpp::ok() && !shutdown_requested.load()) {
+      update();
+
+      if (rclcpp::ok() && !shutdown_requested.load()) {
+        rclcpp::spin_some(this->get_node_base_interface());
+      }
+    }
   }
 
 private:
@@ -87,12 +112,12 @@ private:
     struct termios raw = original_terminal_settings_;
 
     raw.c_lflag &= ~(ICANON | ECHO);
-    raw.c_cc[VMIN] = 0;
+    raw.c_cc[VMIN] = 1;
     raw.c_cc[VTIME] = 0;
 
     tcsetattr(STDIN_FILENO, TCSANOW, &raw);
 
-    fcntl(STDIN_FILENO, F_SETFL, original_terminal_flags_ | O_NONBLOCK);
+    fcntl(STDIN_FILENO, F_SETFL, original_terminal_flags_ & ~O_NONBLOCK);
   }
 
   void restore_terminal()
@@ -106,10 +131,19 @@ private:
 
   char read_key()
   {
-    char key = 0;
+    struct pollfd input
+    {
+      STDIN_FILENO, POLLIN, 0
+    };
 
-    if (read(STDIN_FILENO, &key, 1) > 0) {
-      return key;
+    const int result = poll(&input, 1, 50);
+
+    if (result > 0 && (input.revents & POLLIN) != 0) {
+      char key = 0;
+
+      if (read(STDIN_FILENO, &key, 1) > 0) {
+        return key;
+      }
     }
 
     return 0;
@@ -168,25 +202,25 @@ private:
       case 'r':
         linear_speed_ += 0.05;
         RCLCPP_INFO(this->get_logger(), "Linear speed: %.2f m/s", linear_speed_);
-        return;
+        break;
 
       case 'f':
         linear_speed_ = std::max(0.05, linear_speed_ - 0.05);
         RCLCPP_INFO(this->get_logger(), "Linear speed: %.2f m/s", linear_speed_);
-        return;
+        break;
 
       case 't':
         angular_speed_ += 0.1;
         RCLCPP_INFO(this->get_logger(), "Angular speed: %.2f rad/s", angular_speed_);
-        return;
+        break;
 
       case 'g':
         angular_speed_ = std::max(0.1, angular_speed_ - 0.1);
         RCLCPP_INFO(this->get_logger(), "Angular speed: %.2f rad/s", angular_speed_);
-        return;
+        break;
 
       default:
-        return;
+        break;
     }
 
     cmd_vel_pub_->publish(twist);
@@ -199,7 +233,6 @@ private:
   }
 
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
-  rclcpp::TimerBase::SharedPtr timer_;
 
   struct termios original_terminal_settings_;
   int original_terminal_flags_;
@@ -211,11 +244,19 @@ private:
 
 int main(int argc, char * argv[])
 {
-  rclcpp::init(argc, argv);
+  rclcpp::InitOptions init_options;
+  rclcpp::init(
+    argc,
+    argv,
+    init_options,
+    rclcpp::SignalHandlerOptions::None);
+
+  std::signal(SIGINT, signal_handler);
+  std::signal(SIGTERM, signal_handler);
 
   auto node = std::make_shared<AtlasTeleop>();
 
-  rclcpp::spin(node);
+  node->run();
 
   node->shutdown();
 
