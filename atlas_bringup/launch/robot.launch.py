@@ -72,7 +72,7 @@ def generate_launch_description():
             os.path.join(
                 get_package_share_directory("atlas_localization"),
                 "launch",
-                "local_localization.launch.py"
+                "state_estimation.launch.py"
             )
         )
     )
@@ -82,7 +82,7 @@ def generate_launch_description():
             os.path.join(
                 get_package_share_directory("atlas_localization"),
                 "launch",
-                "global_localization.launch.py"
+                "amcl.launch.py"
             )
         ),
         launch_arguments={

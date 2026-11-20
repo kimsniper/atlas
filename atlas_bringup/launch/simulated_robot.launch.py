@@ -29,10 +29,6 @@ def generate_launch_description():
             "launch",
             "controller.launch.py"
         ),
-        launch_arguments={
-            "use_simple_controller": "False",
-            "use_python": "False"
-        }.items(),
     )
     
     joystick = IncludeLaunchDescription(
@@ -50,7 +46,7 @@ def generate_launch_description():
         os.path.join(
             get_package_share_directory("atlas_localization"),
             "launch",
-            "global_localization.launch.py"
+            "amcl.launch.py"
         ),
         condition=UnlessCondition(use_slam)
     )

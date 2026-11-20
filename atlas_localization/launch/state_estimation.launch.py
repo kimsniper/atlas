@@ -1,19 +1,9 @@
 from launch import LaunchDescription
 from ament_index_python.packages import get_package_share_directory
 from launch_ros.actions import Node
-from launch.actions import DeclareLaunchArgument
-from launch.substitutions import LaunchConfiguration
-from launch.conditions import UnlessCondition, IfCondition
 import os
 
 def generate_launch_description():
-
-    use_python_arg = DeclareLaunchArgument(
-        "use_python",
-        default_value="False",
-    )
-
-    use_python = LaunchConfiguration("use_python")
 
     static_transform_publisher = Node(
         package="tf2_ros",
@@ -32,18 +22,31 @@ def generate_launch_description():
         parameters=[os.path.join(get_package_share_directory("atlas_localization"), "config", "ekf.yaml")],
     )
 
-    imu_republisher_py = Node(
-        package="atlas_localization",
-        executable="imu_republisher.py",
-        condition=IfCondition(use_python),
+    imu_filter = Node(
+        package="imu_complementary_filter",
+        executable="complementary_filter_node",
+        name="complementary_filter_gain_node",
+        output="screen",
+        parameters=[
+            {
+                "do_bias_estimation": True,
+                "do_adaptive_gain": True,
+                "bias_alpha": 0.01,
+                "use_mag": False,
+                "gain_acc": 0.01,
+                "gain_mag": 0.01,
+                "publish_tf": False,
+                "fixed_frame": "odom",
+                "reverse_tf": False,
+                "constant_dt": 0.0,
+                "orientation_stddev": 0.0,
+            }
+        ],
+        remappings=[
+            ("imu/data_raw", "/imu/data_raw"),
+            ("imu/data", "/imu/data"),
+        ],
     )
-
-    imu_republisher_cpp = Node(
-        package="atlas_localization",
-        executable="imu_republisher",
-        condition=UnlessCondition(use_python),
-    )
-
 
     odom_republisher = Node(
         package="atlas_localization",
@@ -51,10 +54,8 @@ def generate_launch_description():
         output="screen",
     )
     return LaunchDescription([
-        use_python_arg,
         static_transform_publisher,
+        imu_filter,
         robot_localization,
-        imu_republisher_py,
-        imu_republisher_cpp,   
         odom_republisher,
     ])
