@@ -13,6 +13,11 @@ def generate_launch_description():
     use_sim_time = LaunchConfiguration("use_sim_time")
     lifecycle_nodes = ["controller_server", "planner_server", "smoother_server", "bt_navigator", "behavior_server"]
     atlas_navigation_pkg = get_package_share_directory("atlas_navigation")
+    nav_to_pose_bt = os.path.join(
+        atlas_navigation_pkg,
+        "behavior_tree",
+        "simple_navigation_w_replanning_and_recovery.xml",
+    )
 
     use_sim_time_arg = DeclareLaunchArgument(
         "use_sim_time",
@@ -70,7 +75,10 @@ def generate_launch_description():
                 atlas_navigation_pkg,
                 "config",
                 "bt_navigator.yaml"),
-            {"use_sim_time": use_sim_time}
+            {
+                "use_sim_time": use_sim_time,
+                "default_nav_to_pose_bt_xml": nav_to_pose_bt,
+            }
         ],
     )
 
