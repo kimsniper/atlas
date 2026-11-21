@@ -116,7 +116,8 @@ def generate_launch_description():
         launch_arguments={
             "use_sim_time": "false",
             "cmd_vel_topic": "/atlas_controller/cmd_vel"
-        }.items()
+        }.items(),
+        condition=UnlessCondition(use_slam)
     )
 
     return LaunchDescription([
