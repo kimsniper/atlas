@@ -2,9 +2,10 @@
 <package format="3">
   <name>atlas_mapping</name>
   <version>0.0.0</version>
-  <description>Atlas Mapping Package</description>
+  <description>atlas mapping Package</description>
   <maintainer email="kim1991mail@gmail.com">Mezael Docoy</maintainer>
   <license>Apache 2.0</license>
+
   <buildtool_depend>ament_cmake</buildtool_depend>
   <buildtool_depend>ament_cmake_python</buildtool_depend>
   <exec_depend>slam_toolbox</exec_depend>

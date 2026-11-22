@@ -3,7 +3,7 @@
 <package format="3">
   <name>atlas_description</name>
   <version>1.0.0</version>
-  <description>Atlas Description package</description>
+  <description>atlas description package</description>
   <maintainer email="kim1991mail@gmail.com">Mezael Docoy</maintainer>
   <license>Apache 2.0</license>
 

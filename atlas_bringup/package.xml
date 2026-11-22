@@ -3,7 +3,7 @@
 <package format="3">
   <name>atlas_bringup</name>
   <version>0.0.0</version>
-  <description>Atlas Bringup package</description>
+  <description>atlas bringup package</description>
   <maintainer email="kim1991mail@gmail.com">Mezael Docoy</maintainer>
   <license>Apache 2.0</license>
 
