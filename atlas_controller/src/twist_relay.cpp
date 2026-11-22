@@ -23,34 +23,31 @@
 class TwistRelay : public rclcpp::Node
 {
 public:
-  TwistRelay()
-  : Node("twist_relay")
-  {
-    command_pub_ = create_publisher<geometry_msgs::msg::TwistStamped>(
-      "/atlas_controller/cmd_vel",
-      10);
+    TwistRelay() : Node("twist_relay")
+    {
+        command_pub_ =
+            create_publisher<geometry_msgs::msg::TwistStamped>("/atlas_controller/cmd_vel", 10);
 
-    command_sub_ = create_subscription<geometry_msgs::msg::Twist>(
-      "/cmd_vel",
-      10,
-      [this](const geometry_msgs::msg::Twist::SharedPtr message)
-      {
-        geometry_msgs::msg::TwistStamped stamped;
-        stamped.header.stamp = get_clock()->now();
-        stamped.twist = *message;
-        command_pub_->publish(stamped);
-      });
-  }
+        command_sub_ = create_subscription<geometry_msgs::msg::Twist>(
+            "/cmd_vel", 10,
+            [this](const geometry_msgs::msg::Twist::SharedPtr message)
+            {
+                geometry_msgs::msg::TwistStamped stamped;
+                stamped.header.stamp = get_clock()->now();
+                stamped.twist = *message;
+                command_pub_->publish(stamped);
+            });
+    }
 
 private:
-  rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr command_sub_;
-  rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr command_pub_;
+    rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr command_sub_;
+    rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr command_pub_;
 };
 
-int main(int argc, char * argv[])
+int main(int argc, char *argv[])
 {
-  rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<TwistRelay>());
-  rclcpp::shutdown();
-  return 0;
+    rclcpp::init(argc, argv);
+    rclcpp::spin(std::make_shared<TwistRelay>());
+    rclcpp::shutdown();
+    return 0;
 }

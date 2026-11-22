@@ -35,234 +35,233 @@ namespace
 
 std::atomic_bool shutdown_requested{false};
 
-void signal_handler(int)
-{
-  shutdown_requested.store(true);
-}
+void signal_handler(int) { shutdown_requested.store(true); }
 
-}  // namespace
+} // namespace
 
 class AtlasTeleop : public rclcpp::Node
 {
 public:
-  AtlasTeleop()
-  : Node("atlas_teleop"), linear_speed_(0.15), angular_speed_(1.0), terminal_restored_(false)
-  {
-    cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
+    AtlasTeleop()
+        : Node("atlas_teleop"), linear_speed_(0.15), angular_speed_(1.0), terminal_restored_(false)
+    {
+        cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
 
-    original_terminal_settings_ = get_terminal_settings();
-    original_terminal_flags_ = fcntl(STDIN_FILENO, F_GETFL, 0);
+        original_terminal_settings_ = get_terminal_settings();
+        original_terminal_flags_ = fcntl(STDIN_FILENO, F_GETFL, 0);
 
-    set_terminal_raw();
+        set_terminal_raw();
 
-    RCLCPP_INFO(this->get_logger(), "ATLAS Keyboard Teleop");
-    RCLCPP_INFO(this->get_logger(), "----------------------");
-    RCLCPP_INFO(this->get_logger(), "w : forward");
-    RCLCPP_INFO(this->get_logger(), "s : backward");
-    RCLCPP_INFO(this->get_logger(), "a : rotate left");
-    RCLCPP_INFO(this->get_logger(), "d : rotate right");
-    RCLCPP_INFO(this->get_logger(), "q : forward + left");
-    RCLCPP_INFO(this->get_logger(), "e : forward + right");
-    RCLCPP_INFO(this->get_logger(), "z : backward + left");
-    RCLCPP_INFO(this->get_logger(), "c : backward + right");
-    RCLCPP_INFO(this->get_logger(), "x : stop");
-    RCLCPP_INFO(this->get_logger(), "r/f : increase/decrease linear speed");
-    RCLCPP_INFO(this->get_logger(), "t/g : increase/decrease angular speed");
-    RCLCPP_INFO(this->get_logger(), "CTRL-C : exit");
-
-  }
-
-  ~AtlasTeleop() {shutdown();}
-
-  void shutdown()
-  {
-    if (terminal_restored_) {
-      return;
+        RCLCPP_INFO(this->get_logger(), "ATLAS Keyboard Teleop");
+        RCLCPP_INFO(this->get_logger(), "----------------------");
+        RCLCPP_INFO(this->get_logger(), "w : forward");
+        RCLCPP_INFO(this->get_logger(), "s : backward");
+        RCLCPP_INFO(this->get_logger(), "a : rotate left");
+        RCLCPP_INFO(this->get_logger(), "d : rotate right");
+        RCLCPP_INFO(this->get_logger(), "q : forward + left");
+        RCLCPP_INFO(this->get_logger(), "e : forward + right");
+        RCLCPP_INFO(this->get_logger(), "z : backward + left");
+        RCLCPP_INFO(this->get_logger(), "c : backward + right");
+        RCLCPP_INFO(this->get_logger(), "x : stop");
+        RCLCPP_INFO(this->get_logger(), "r/f : increase/decrease linear speed");
+        RCLCPP_INFO(this->get_logger(), "t/g : increase/decrease angular speed");
+        RCLCPP_INFO(this->get_logger(), "CTRL-C : exit");
     }
 
-    publish_stop();
-    restore_terminal();
+    ~AtlasTeleop() { shutdown(); }
 
-    terminal_restored_ = true;
-  }
+    void shutdown()
+    {
+        if (terminal_restored_)
+        {
+            return;
+        }
 
-  void run()
-  {
-    while (rclcpp::ok() && !shutdown_requested.load()) {
-      update();
+        publish_stop();
+        restore_terminal();
 
-      if (rclcpp::ok() && !shutdown_requested.load()) {
-        rclcpp::spin_some(this->get_node_base_interface());
-      }
+        terminal_restored_ = true;
     }
-  }
+
+    void run()
+    {
+        while (rclcpp::ok() && !shutdown_requested.load())
+        {
+            update();
+
+            if (rclcpp::ok() && !shutdown_requested.load())
+            {
+                rclcpp::spin_some(this->get_node_base_interface());
+            }
+        }
+    }
 
 private:
-  struct termios get_terminal_settings()
-  {
-    struct termios settings
+    struct termios get_terminal_settings()
     {
-    };
-    tcgetattr(STDIN_FILENO, &settings);
-    return settings;
-  }
+        struct termios settings
+        {
+        };
+        tcgetattr(STDIN_FILENO, &settings);
+        return settings;
+    }
 
-  void set_terminal_raw()
-  {
-    struct termios raw = original_terminal_settings_;
-
-    raw.c_lflag &= ~(ICANON | ECHO);
-    raw.c_cc[VMIN] = 1;
-    raw.c_cc[VTIME] = 0;
-
-    tcsetattr(STDIN_FILENO, TCSANOW, &raw);
-
-    fcntl(STDIN_FILENO, F_SETFL, original_terminal_flags_ & ~O_NONBLOCK);
-  }
-
-  void restore_terminal()
-  {
-    tcsetattr(STDIN_FILENO, TCSANOW, &original_terminal_settings_);
-
-    fcntl(STDIN_FILENO, F_SETFL, original_terminal_flags_);
-
-    tcflush(STDIN_FILENO, TCIFLUSH);
-  }
-
-  char read_key()
-  {
-    struct pollfd input
+    void set_terminal_raw()
     {
-      STDIN_FILENO, POLLIN, 0
-    };
+        struct termios raw = original_terminal_settings_;
 
-    const int result = poll(&input, 1, 50);
+        raw.c_lflag &= ~(ICANON | ECHO);
+        raw.c_cc[VMIN] = 1;
+        raw.c_cc[VTIME] = 0;
 
-    if (result > 0 && (input.revents & POLLIN) != 0) {
-      char key = 0;
+        tcsetattr(STDIN_FILENO, TCSANOW, &raw);
 
-      if (read(STDIN_FILENO, &key, 1) > 0) {
-        return key;
-      }
+        fcntl(STDIN_FILENO, F_SETFL, original_terminal_flags_ & ~O_NONBLOCK);
     }
 
-    return 0;
-  }
+    void restore_terminal()
+    {
+        tcsetattr(STDIN_FILENO, TCSANOW, &original_terminal_settings_);
 
-  void update()
-  {
-    char key = read_key();
+        fcntl(STDIN_FILENO, F_SETFL, original_terminal_flags_);
 
-    if (key == 0) {
-      return;
+        tcflush(STDIN_FILENO, TCIFLUSH);
     }
 
-    geometry_msgs::msg::Twist twist;
+    char read_key()
+    {
+        struct pollfd input
+        {
+            STDIN_FILENO, POLLIN, 0
+        };
 
-    switch (key) {
-      case 'w':
-        twist.linear.x = linear_speed_;
-        break;
+        const int result = poll(&input, 1, 50);
 
-      case 's':
-        twist.linear.x = -linear_speed_;
-        break;
+        if (result > 0 && (input.revents & POLLIN) != 0)
+        {
+            char key = 0;
 
-      case 'a':
-        twist.angular.z = angular_speed_;
-        break;
+            if (read(STDIN_FILENO, &key, 1) > 0)
+            {
+                return key;
+            }
+        }
 
-      case 'd':
-        twist.angular.z = -angular_speed_;
-        break;
-
-      case 'q':
-        twist.linear.x = linear_speed_;
-        twist.angular.z = angular_speed_;
-        break;
-
-      case 'e':
-        twist.linear.x = linear_speed_;
-        twist.angular.z = -angular_speed_;
-        break;
-
-      case 'z':
-        twist.linear.x = -linear_speed_;
-        twist.angular.z = angular_speed_;
-        break;
-
-      case 'c':
-        twist.linear.x = -linear_speed_;
-        twist.angular.z = -angular_speed_;
-        break;
-
-      case 'x':
-        break;
-
-      case 'r':
-        linear_speed_ += 0.05;
-        RCLCPP_INFO(this->get_logger(), "Linear speed: %.2f m/s", linear_speed_);
-        break;
-
-      case 'f':
-        linear_speed_ = std::max(0.05, linear_speed_ - 0.05);
-        RCLCPP_INFO(this->get_logger(), "Linear speed: %.2f m/s", linear_speed_);
-        break;
-
-      case 't':
-        angular_speed_ += 0.1;
-        RCLCPP_INFO(this->get_logger(), "Angular speed: %.2f rad/s", angular_speed_);
-        break;
-
-      case 'g':
-        angular_speed_ = std::max(0.1, angular_speed_ - 0.1);
-        RCLCPP_INFO(this->get_logger(), "Angular speed: %.2f rad/s", angular_speed_);
-        break;
-
-      default:
-        break;
+        return 0;
     }
 
-    cmd_vel_pub_->publish(twist);
-  }
+    void update()
+    {
+        char key = read_key();
 
-  void publish_stop()
-  {
-    geometry_msgs::msg::Twist stop;
-    cmd_vel_pub_->publish(stop);
-  }
+        if (key == 0)
+        {
+            return;
+        }
 
-  rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
+        geometry_msgs::msg::Twist twist;
 
-  struct termios original_terminal_settings_;
-  int original_terminal_flags_;
+        switch (key)
+        {
+        case 'w':
+            twist.linear.x = linear_speed_;
+            break;
 
-  double linear_speed_;
-  double angular_speed_;
-  bool terminal_restored_;
+        case 's':
+            twist.linear.x = -linear_speed_;
+            break;
+
+        case 'a':
+            twist.angular.z = angular_speed_;
+            break;
+
+        case 'd':
+            twist.angular.z = -angular_speed_;
+            break;
+
+        case 'q':
+            twist.linear.x = linear_speed_;
+            twist.angular.z = angular_speed_;
+            break;
+
+        case 'e':
+            twist.linear.x = linear_speed_;
+            twist.angular.z = -angular_speed_;
+            break;
+
+        case 'z':
+            twist.linear.x = -linear_speed_;
+            twist.angular.z = angular_speed_;
+            break;
+
+        case 'c':
+            twist.linear.x = -linear_speed_;
+            twist.angular.z = -angular_speed_;
+            break;
+
+        case 'x':
+            break;
+
+        case 'r':
+            linear_speed_ += 0.05;
+            RCLCPP_INFO(this->get_logger(), "Linear speed: %.2f m/s", linear_speed_);
+            break;
+
+        case 'f':
+            linear_speed_ = std::max(0.05, linear_speed_ - 0.05);
+            RCLCPP_INFO(this->get_logger(), "Linear speed: %.2f m/s", linear_speed_);
+            break;
+
+        case 't':
+            angular_speed_ += 0.1;
+            RCLCPP_INFO(this->get_logger(), "Angular speed: %.2f rad/s", angular_speed_);
+            break;
+
+        case 'g':
+            angular_speed_ = std::max(0.1, angular_speed_ - 0.1);
+            RCLCPP_INFO(this->get_logger(), "Angular speed: %.2f rad/s", angular_speed_);
+            break;
+
+        default:
+            break;
+        }
+
+        cmd_vel_pub_->publish(twist);
+    }
+
+    void publish_stop()
+    {
+        geometry_msgs::msg::Twist stop;
+        cmd_vel_pub_->publish(stop);
+    }
+
+    rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
+
+    struct termios original_terminal_settings_;
+    int original_terminal_flags_;
+
+    double linear_speed_;
+    double angular_speed_;
+    bool terminal_restored_;
 };
 
-int main(int argc, char * argv[])
+int main(int argc, char *argv[])
 {
-  rclcpp::InitOptions init_options;
-  rclcpp::init(
-    argc,
-    argv,
-    init_options,
-    rclcpp::SignalHandlerOptions::None);
+    rclcpp::InitOptions init_options;
+    rclcpp::init(argc, argv, init_options, rclcpp::SignalHandlerOptions::None);
 
-  std::signal(SIGINT, signal_handler);
-  std::signal(SIGTERM, signal_handler);
+    std::signal(SIGINT, signal_handler);
+    std::signal(SIGTERM, signal_handler);
 
-  auto node = std::make_shared<AtlasTeleop>();
+    auto node = std::make_shared<AtlasTeleop>();
 
-  node->run();
+    node->run();
 
-  node->shutdown();
+    node->shutdown();
 
-  node.reset();
+    node.reset();
 
-  rclcpp::shutdown();
+    rclcpp::shutdown();
 
-  return 0;
+    return 0;
 }
